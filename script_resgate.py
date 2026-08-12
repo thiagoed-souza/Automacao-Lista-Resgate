@@ -18,10 +18,20 @@ def solicitar_dados_usuario():
     usuario = input("Digite seu usuário/CPF no Flystart: ").strip()
     senha = getpass.getpass("Digite sua senha do Flystart (não aparecerá na tela): ").strip()
     
+    print("\n--- SELEÇÃO DE EMPRESA ---")
+    print("1 - ZEH MOTOCA JP")
+    print("2 - ZEH MOTOCA NATAL")
+    opcao_empresa = input("Escolha a empresa (1 ou 2): ").strip()
+    
+    if opcao_empresa == "2":
+        empresa_nome = "ZEH MOTOCA NATAL"
+    else:
+        empresa_nome = "ZEH MOTOCA JP"
+
     print("\nExemplo de formato de data: 01/08/2026 - 09/08/2026")
     data_analise = input("Digite o período da 'Data em Análise': ").strip()
     
-    return usuario, senha, data_analise
+    return usuario, senha, empresa_nome, data_analise
 
 def configurar_driver():
     chrome_options = webdriver.ChromeOptions()
@@ -42,7 +52,7 @@ def configurar_driver():
     return driver
 
 def automatizar_flystart_e_processar_planilha():
-    usuario_flystart, senha_flystart, intervalo_datas = solicitar_dados_usuario()
+    usuario_flystart, senha_flystart, empresa_selecionada, intervalo_datas = solicitar_dados_usuario()
 
     driver = configurar_driver()
     wait = WebDriverWait(driver, 25)
@@ -66,13 +76,17 @@ def automatizar_flystart_e_processar_planilha():
         btn_login = driver.find_element(By.XPATH, "//button[contains(., 'Entrar')] | //button[@type='submit']")
         btn_login.click()
 
-        # --- SELEÇÃO DE EMPRESA E PERFIL ---
-        print("3. Selecionando a empresa 'ZEH MOTOCA JP'...")
-        opcao_zeh_jp = wait.until(EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'ZEH MOTOCA JP')]")))
-        opcao_zeh_jp.click()
+        # --- SELEÇÃO DE EMPRESA ---
+        print(f"3. Selecionando a empresa '{empresa_selecionada}'...")
+        opcao_empresa = wait.until(EC.element_to_be_clickable((
+            By.XPATH, f"//*[contains(text(), '{empresa_selecionada}')]"
+        )))
+        opcao_empresa.click()
 
         print("4. Selecionando o perfil 'Administrador de Empresa'...")
-        opcao_admin = wait.until(EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Administrador de Empresa')]")))
+        opcao_admin = wait.until(EC.element_to_be_clickable((
+            By.XPATH, "//*[contains(text(), 'Administrador de Empresa')]"
+        )))
         opcao_admin.click()
 
         # --- NAVEGAÇÃO DIRETA AO FINANCEIRO ---
@@ -153,88 +167,150 @@ def automatizar_flystart_e_processar_planilha():
 
     try:
         if ultimo_arquivo.endswith(".csv"):
-            df = pd.read_csv(ultimo_arquivo, sep=';', encoding='utf-8-sig', skiprows=6)
+            df = pd.read_csv(ultimo_arquivo, sep=';', encoding='utf-8-sig', header=4)
         else:
-            df = pd.read_excel(ultimo_arquivo, skiprows=6)
+            df = pd.read_excel(ultimo_arquivo, header=4)
 
         df = df.dropna(how='all')
 
-        # 1. FILTRAR E EXCLUIR LINHAS CANCELADAS E CONGELADAS (STATUS)
-        termo_exclusao = r'cancelad|congelad'
-        cols_status = [c for c in df.columns if 'status' in str(c).lower() or 'aprovad' in str(df[c].astype(str)).lower()]
-        
-        if cols_status:
-            for col in cols_status:
-                df = df[~df[col].astype(str).str.contains(termo_exclusao, case=False, na=False)]
-        else:
-            ultima_coluna = df.columns[-1]
-            df = df[~df[ultima_coluna].astype(str).str.contains(termo_exclusao, case=False, na=False)]
+        # -------------------------------------------------------------
+        # 1. FILTRAR "Status Locação": REMOVER CONGELADOS E CANCELADOS
+        # -------------------------------------------------------------
+        col_status_loc = [c for c in df.columns if 'status' in str(c).lower() and 'loca' in str(c).lower()]
+        if col_status_loc:
+            c_status = col_status_loc[0]
+            df = df[~df[c_status].astype(str).str.contains(r'congelad|cancelad', case=False, na=False)]
 
-        # 2. TRATAR SALDO (MULTIPLICAR POR 1.13 E FORMATAR EM R$)
-        col_saldo_candidates = [c for c in df.columns if 'saldo' in str(c).lower() or 'valor' in str(c).lower()]
-        col_saldo_nome = col_saldo_candidates[0] if col_saldo_candidates else df.columns[9]
+        # -------------------------------------------------------------
+        # 2. LIMPEZA DO NOME DO CLIENTE
+        # -------------------------------------------------------------
+        col_cliente = [c for c in df.columns if 'cliente' in str(c).lower()]
+        if col_cliente:
+            c_cli = col_cliente[0]
+            def limpar_cliente(texto):
+                if pd.isna(texto):
+                    return ""
+                txt = str(texto)
+                txt = re.sub(r'^\s*\[\d+\]\s*-\s*', '', txt)
+                txt = re.sub(r'^\s*\(\d+\)\s*-\s*', '', txt)
+                txt = re.sub(r'^\s*\d+\s*-\s*', '', txt)
+                txt = txt.split('|')[0]
+                return txt.strip()
 
-        df = df[~df[col_saldo_nome].astype(str).str.contains("Total", case=False, na=False)]
+            df[c_cli] = df[c_cli].apply(limpar_cliente)
+            df.drop_duplicates(subset=[c_cli], keep='first', inplace=True)
 
-        def converter_saldo_com_juros(valor):
-            if pd.isna(valor):
-                return "R$ 0,00"
-            try:
-                val_str = str(valor).replace("R$", "").strip()
-                if "," in val_str and "." in val_str:
-                    val_str = val_str.replace(".", "").replace(",", ".")
-                elif "," in val_str:
-                    val_str = val_str.replace(",", ".")
-                
-                v_float = float(val_str)
-                v_com_juros = v_float * 1.13
-                return f"R$ {v_com_juros:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            except (ValueError, TypeError):
-                return valor
-
-        df[col_saldo_nome] = df[col_saldo_nome].apply(converter_saldo_com_juros)
-        df.rename(columns={col_saldo_nome: 'Saldo com Juros (13%)'}, inplace=True)
-
-        # 3. EXCLUIR COLUNAS DESNECESSÁRIAS
-        colunas_para_remover = [
-            'Empresa', 'Parcela', 'Saldo', 'Nº documento', 'Status', 
-            'Vencimento', 'Ultimo pagamento', 'Banco', 'Forma de pagamento', 
-            'Vendedor', 'E-mail', 'Link boleto', 'Unnamed: 14', 'Unnamed: 15'
-        ]
-        cols_existentes = [c for c in colunas_para_remover if c in df.columns]
-        df.drop(columns=cols_existentes, inplace=True, errors='ignore')
-
-        # 4. LIMPEZA ADICIONAL
-        if 'Cliente' in df.columns:
-            df['Cliente'] = df['Cliente'].astype(str).apply(lambda x: re.sub(r'\(.*?\)', '', x))
-            df['Cliente'] = df['Cliente'].str.replace('|', '', regex=False).str.strip()
-            df.drop_duplicates(subset=['Cliente'], keep='first', inplace=True)
-
+        # -------------------------------------------------------------
+        # 3. TRATAR DESCRIÇÃO: YAMAHA E HONDA
+        # -------------------------------------------------------------
         col_desc = [c for c in df.columns if 'descri' in str(c).lower()]
         if col_desc:
-            c_nome = col_desc[0]
-            df[c_nome] = df[c_nome].astype(str).str.replace('CG 160', 'HONDA', regex=False)
-            df[c_nome] = df[c_nome].astype(str).str.replace('YBR 150', 'YAMAHA', regex=False)
+            c_desc = col_desc[0]
+            def tratar_descricao(texto):
+                if pd.isna(texto):
+                    return ""
+                txt = str(texto).strip()
+                txt_upper = txt.upper()
 
-        if 'Placa' in df.columns:
-            df['Placa'] = df['Placa'].astype(str).str.replace('-', '', regex=False).str.strip()
+                if 'INFRAÇÃO' in txt_upper or 'INFRACAO' in txt_upper or 'MULTA' in txt_upper:
+                    return txt
 
-        # 5. SALVAR ARQUIVO FINAL
-        data_hoje = datetime.date.today().strftime("%d-%m-%Y")
-        caminho_tratado = os.path.join(PASTA_DOWNLOADS, f"relatorio_final_tratado_{data_hoje}.xlsx")
+                if any(k in txt_upper for k in ['YBR', 'FACTOR', 'YAMAHA']):
+                    return 'YAMAHA'
+
+                if any(k in txt_upper for k in ['CG', 'START', '160', 'HONDA']):
+                    return 'HONDA'
+
+                return 'HONDA'
+
+            df[c_desc] = df[c_desc].apply(tratar_descricao)
+
+        # -------------------------------------------------------------
+        # 4. TRATAR SALDO (MULTIPLICAR POR 1.13 / 13% DE JUROS)
+        # -------------------------------------------------------------
+        col_saldo = [c for c in df.columns if 'saldo' in str(c).lower()]
+        if col_saldo:
+            c_sal = col_saldo[0]
+            df = df[~df[c_sal].astype(str).str.contains("Total", case=False, na=False)]
+
+            def converter_saldo_com_juros(valor):
+                if pd.isna(valor):
+                    return "R$ 0,00"
+                try:
+                    val_str = str(valor).replace("R$", "").strip()
+                    if "," in val_str and "." in val_str:
+                        val_str = val_str.replace(".", "").replace(",", ".")
+                    elif "," in val_str:
+                        val_str = val_str.replace(",", ".")
+                    
+                    v_float = float(val_str)
+                    v_com_juros = v_float * 1.13
+                    return f"R$ {v_com_juros:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                except (ValueError, TypeError):
+                    return valor
+
+            df[c_sal] = df[c_sal].apply(converter_saldo_com_juros)
+
+        # -------------------------------------------------------------
+        # 5. REMOVER HÍFEN DAS PLACAS
+        # -------------------------------------------------------------
+        col_placa = [c for c in df.columns if 'placa' in str(c).lower()]
+        if col_placa:
+            df[col_placa[0]] = df[col_placa[0]].astype(str).str.replace('-', '', regex=False).str.strip()
+
+        # -------------------------------------------------------------
+        # 6. FORMATAR "Data cadastro" (DEIXAR APENAS DD/MM/AAAA)
+        # -------------------------------------------------------------
+        col_data_cad = [c for c in df.columns if 'data' in str(c).lower() and 'cadast' in str(c).lower()]
+        if col_data_cad:
+            c_data = col_data_cad[0]
+            df[c_data] = df[c_data].astype(str).str.extract(r'(\d{2}/\d{2}/\d{4})')[0].fillna(df[c_data])
+
+        # -------------------------------------------------------------
+        # 7. MANTER APENAS AS 8 COLUNAS DESEJADAS
+        # -------------------------------------------------------------
+        colunas_finais = []
+        padroes_desejados = [
+            (r'^id$', 'Id'),
+            (r'^tipo$', 'Tipo'),
+            (r'cliente', 'Cliente/Fornecedor'),
+            (r'descri', 'Descrição'),
+            (r'placa', 'Placa'),
+            (r'saldo', 'Saldo'),
+            (r'data.*cadast', 'Data cadastro'),
+            (r'whatsapp', 'WhatsApp')
+        ]
+
+        for padrao, nome_padrao in padroes_desejados:
+            encontrada = [c for c in df.columns if re.search(padrao, str(c), re.IGNORECASE)]
+            if encontrada:
+                colunas_finais.append(encontrada[0])
+
+        df = df[colunas_finais]
+
+        # -------------------------------------------------------------
+        # 8. SALVAR O ARQUIVO FINAL
+        # -------------------------------------------------------------
+        data_hoje = datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+        prefixo_empresa = "NATAL" if "NATAL" in empresa_selecionada else "JP"
+        caminho_tratado = os.path.join(PASTA_DOWNLOADS, f"relatorio_{prefixo_empresa}_tratado_{data_hoje}.xlsx")
         
-        with pd.ExcelWriter(caminho_tratado, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Relatório Tratado')
+        try:
+            with pd.ExcelWriter(caminho_tratado, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Relatório Tratado')
 
-        print("\n✅ Tratamento concluído com sucesso!")
-        print(f"📂 Arquivo gerado em: {caminho_tratado}")
-        os.startfile(caminho_tratado)
+            print("\n✅ Tratamento concluído com sucesso!")
+            print(f"📂 Arquivo gerado em: {caminho_tratado}")
+            os.startfile(caminho_tratado)
+        except PermissionError:
+            print("\n❌ ERRO DE PERMISSÃO: O arquivo de destino está aberto no Excel!")
+            print("👉 Por favor, feche a planilha no Excel e rode o script novamente.")
 
     except Exception as e:
         print(f"❌ Erro ao processar a planilha: {e}")
 
 # ==========================================
-# PONTO DE ENTRADA DO SCRIPT (EXECUÇÃO)
+# PONTO DE ENTRADA DO SCRIPT
 # ==========================================
 if __name__ == "__main__":
     automatizar_flystart_e_processar_planilha()
