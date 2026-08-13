@@ -269,7 +269,7 @@ def automatizar_flystart_e_processar_planilha():
             df[c_data] = df[c_data].astype(str).str.extract(r'(\d{2}/\d{2}/\d{4})')[0].fillna(df[c_data])
 
         # -------------------------------------------------------------
-        # 7. CALCULAR DIAS DE ATRASO (FORMATO: "X DIAS")
+        # 7. CALCULAR DIAS DE ATRASO (USANDO A COLUNA VENCIMENTO)
         # -------------------------------------------------------------
         col_venc = [c for c in df.columns if 'venc' in str(c).lower()]
         if col_venc:
@@ -277,7 +277,6 @@ def automatizar_flystart_e_processar_planilha():
             venc_dt = pd.to_datetime(df[c_venc], format='%d/%m/%Y', errors='coerce')
             hoje = pd.to_datetime(datetime.date.today())
             
-            # Função para formatar com o sufixO "DIA" ou "DIAS"
             def formatar_dias(dias):
                 if pd.isna(dias) or dias <= 0:
                     return "0 DIAS"
@@ -286,11 +285,9 @@ def automatizar_flystart_e_processar_planilha():
 
             dias_calculados = (hoje - venc_dt).dt.days
             df['Dias de Atraso'] = dias_calculados.apply(formatar_dias)
-            
-            df[c_venc] = df[c_venc].astype(str).str.extract(r'(\d{2}/\d{2}/\d{4})')[0].fillna(df[c_venc])
 
         # -------------------------------------------------------------
-        # 8. MANTER APENAS AS COLUNAS DESEJADAS
+        # 8. MANTER APENAS AS COLUNAS DESEJADAS (SEM 'VENCIMENTO')
         # -------------------------------------------------------------
         colunas_finais = []
         padroes_desejados = [
@@ -301,7 +298,6 @@ def automatizar_flystart_e_processar_planilha():
             (r'placa', 'Placa'),
             (r'saldo', 'Saldo'),
             (r'data.*cadast', 'Data cadastro'),
-            (r'venc', 'Data Vencimento'),
             (r'dias de atraso', 'Dias de Atraso'),
             (r'whatsapp', 'WhatsApp')
         ]
