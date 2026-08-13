@@ -14,7 +14,9 @@ from selenium.webdriver.support import expected_conditions as EC
 PASTA_DOWNLOADS = os.path.join(os.path.expanduser("~"), "Downloads")
 
 def solicitar_dados_usuario():
+    print("\n" + "="*50)
     print("=== AUTENTICAÇÃO E CONFIGURAÇÃO DA CONSULTA ===")
+    print("="*50)
     usuario = input("Digite seu usuário/CPF no Flystart: ").strip()
     senha = getpass.getpass("Digite sua senha do Flystart (não aparecerá na tela): ").strip()
     
@@ -272,22 +274,16 @@ def automatizar_flystart_e_processar_planilha():
         col_venc = [c for c in df.columns if 'venc' in str(c).lower()]
         if col_venc:
             c_venc = col_venc[0]
-            
-            # Converte a coluna de vencimento para formato datetime
             venc_dt = pd.to_datetime(df[c_venc], format='%d/%m/%Y', errors='coerce')
-            
-            # Pega a data atual de hoje sem hora
             hoje = pd.to_datetime(datetime.date.today())
             
-            # Calcula a diferença de dias. Se for negativo (ainda não venceu), atribui 0
             df['Dias de Atraso'] = (hoje - venc_dt).dt.days
             df['Dias de Atraso'] = df['Dias de Atraso'].apply(lambda x: max(0, int(x)) if pd.notna(x) else 0)
             
-            # Limpa/formata a própria coluna de vencimento para DD/MM/AAAA
             df[c_venc] = df[c_venc].astype(str).str.extract(r'(\d{2}/\d{2}/\d{4})')[0].fillna(df[c_venc])
 
         # -------------------------------------------------------------
-        # 8. MANTER APENAS AS COLUNAS DESEJADAS (INCLUINDO DIAS DE ATRASO)
+        # 8. MANTER APENAS AS COLUNAS DESEJADAS
         # -------------------------------------------------------------
         colunas_finais = []
         padroes_desejados = [
@@ -332,13 +328,21 @@ def automatizar_flystart_e_processar_planilha():
         print(f"❌ Erro ao processar a planilha: {e}")
 
 # ==========================================
-# PONTO DE ENTRADA DO SCRIPT
+# PONTO DE ENTRADA DO SCRIPT COM MENU DE REPETIÇÃO
 # ==========================================
 if __name__ == "__main__":
-    try:
-        automatizar_flystart_e_processar_planilha()
-    except Exception as e:
-        print(f"\n❌ Erro crítico de execução: {e}")
-    finally:
+    while True:
+        try:
+            automatizar_flystart_e_processar_planilha()
+        except Exception as e:
+            print(f"\n❌ Erro crítico de execução: {e}")
+        
         print("\n" + "="*50)
-        input("Pressione a tecla [ENTER] para fechar esta janela...")
+        print("1 - Rodar a automação novamente")
+        print("2 - Sair do programa")
+        opcao_fim = input("Escolha uma opção (1 ou 2): ").strip()
+        
+        if opcao_fim != "1":
+            print("\nEncerrando o sistema... Até mais!")
+            time.sleep(2)
+            break
