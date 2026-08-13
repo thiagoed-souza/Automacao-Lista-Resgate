@@ -313,4 +313,10 @@ def automatizar_flystart_e_processar_planilha():
 # PONTO DE ENTRADA DO SCRIPT
 # ==========================================
 if __name__ == "__main__":
-    automatizar_flystart_e_processar_planilha()
+    try:
+        automatizar_flystart_e_processar_planilha()
+    except Exception as e:
+        print(f"\n❌ Erro crítico de execução: {e}")
+    finally:
+        print("\n" + "="*50)
+        input("Pressione a tecla [ENTER] para fechar esta janela...")
