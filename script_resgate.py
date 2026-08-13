@@ -269,7 +269,7 @@ def automatizar_flystart_e_processar_planilha():
             df[c_data] = df[c_data].astype(str).str.extract(r'(\d{2}/\d{2}/\d{4})')[0].fillna(df[c_data])
 
         # -------------------------------------------------------------
-        # 7. CALCULAR DIAS DE ATRASO A PARTIR DA DATA DE VENCIMENTO
+        # 7. CALCULAR DIAS DE ATRASO (FORMATO: "X DIAS")
         # -------------------------------------------------------------
         col_venc = [c for c in df.columns if 'venc' in str(c).lower()]
         if col_venc:
@@ -277,8 +277,15 @@ def automatizar_flystart_e_processar_planilha():
             venc_dt = pd.to_datetime(df[c_venc], format='%d/%m/%Y', errors='coerce')
             hoje = pd.to_datetime(datetime.date.today())
             
-            df['Dias de Atraso'] = (hoje - venc_dt).dt.days
-            df['Dias de Atraso'] = df['Dias de Atraso'].apply(lambda x: max(0, int(x)) if pd.notna(x) else 0)
+            # Função para formatar com o sufixO "DIA" ou "DIAS"
+            def formatar_dias(dias):
+                if pd.isna(dias) or dias <= 0:
+                    return "0 DIAS"
+                dias = int(dias)
+                return f"{dias} DIA" if dias == 1 else f"{dias} DIAS"
+
+            dias_calculados = (hoje - venc_dt).dt.days
+            df['Dias de Atraso'] = dias_calculados.apply(formatar_dias)
             
             df[c_venc] = df[c_venc].astype(str).str.extract(r'(\d{2}/\d{2}/\d{4})')[0].fillna(df[c_venc])
 
