@@ -269,7 +269,7 @@ def automatizar_flystart_e_processar_planilha():
             df[c_data] = df[c_data].astype(str).str.extract(r'(\d{2}/\d{2}/\d{4})')[0].fillna(df[c_data])
 
         # -------------------------------------------------------------
-        # 7. CALCULAR DIAS DE ATRASO (USANDO A COLUNA VENCIMENTO)
+        # 7. CALCULAR DIAS DE ATRASO (USANDO A COLUNA VENCIMENTO + 1 DIA)
         # -------------------------------------------------------------
         col_venc = [c for c in df.columns if 'venc' in str(c).lower()]
         if col_venc:
@@ -283,7 +283,8 @@ def automatizar_flystart_e_processar_planilha():
                 dias = int(dias)
                 return f"{dias} DIA" if dias == 1 else f"{dias} DIAS"
 
-            dias_calculados = (hoje - venc_dt).dt.days
+            # O +1 garante que no dia exato do vencimento a contagem já inicie em 1 DIA
+            dias_calculados = (hoje - venc_dt).dt.days + 1
             df['Dias de Atraso'] = dias_calculados.apply(formatar_dias)
 
         # -------------------------------------------------------------
