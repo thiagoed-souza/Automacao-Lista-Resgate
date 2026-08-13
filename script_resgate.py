@@ -267,7 +267,27 @@ def automatizar_flystart_e_processar_planilha():
             df[c_data] = df[c_data].astype(str).str.extract(r'(\d{2}/\d{2}/\d{4})')[0].fillna(df[c_data])
 
         # -------------------------------------------------------------
-        # 7. MANTER APENAS AS 8 COLUNAS DESEJADAS
+        # 7. CALCULAR DIAS DE ATRASO A PARTIR DA DATA DE VENCIMENTO
+        # -------------------------------------------------------------
+        col_venc = [c for c in df.columns if 'venc' in str(c).lower()]
+        if col_venc:
+            c_venc = col_venc[0]
+            
+            # Converte a coluna de vencimento para formato datetime
+            venc_dt = pd.to_datetime(df[c_venc], format='%d/%m/%Y', errors='coerce')
+            
+            # Pega a data atual de hoje sem hora
+            hoje = pd.to_datetime(datetime.date.today())
+            
+            # Calcula a diferença de dias. Se for negativo (ainda não venceu), atribui 0
+            df['Dias de Atraso'] = (hoje - venc_dt).dt.days
+            df['Dias de Atraso'] = df['Dias de Atraso'].apply(lambda x: max(0, int(x)) if pd.notna(x) else 0)
+            
+            # Limpa/formata a própria coluna de vencimento para DD/MM/AAAA
+            df[c_venc] = df[c_venc].astype(str).str.extract(r'(\d{2}/\d{2}/\d{4})')[0].fillna(df[c_venc])
+
+        # -------------------------------------------------------------
+        # 8. MANTER APENAS AS COLUNAS DESEJADAS (INCLUINDO DIAS DE ATRASO)
         # -------------------------------------------------------------
         colunas_finais = []
         padroes_desejados = [
@@ -278,6 +298,8 @@ def automatizar_flystart_e_processar_planilha():
             (r'placa', 'Placa'),
             (r'saldo', 'Saldo'),
             (r'data.*cadast', 'Data cadastro'),
+            (r'venc', 'Data Vencimento'),
+            (r'dias de atraso', 'Dias de Atraso'),
             (r'whatsapp', 'WhatsApp')
         ]
 
@@ -289,7 +311,7 @@ def automatizar_flystart_e_processar_planilha():
         df = df[colunas_finais]
 
         # -------------------------------------------------------------
-        # 8. SALVAR O ARQUIVO FINAL
+        # 9. SALVAR O ARQUIVO FINAL
         # -------------------------------------------------------------
         data_hoje = datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
         prefixo_empresa = "NATAL" if "NATAL" in empresa_selecionada else "JP"
