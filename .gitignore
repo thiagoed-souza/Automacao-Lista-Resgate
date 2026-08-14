@@ -1,0 +1,13 @@
+# Arquivos de compilação do PyInstaller
+build/
+dist/
+*.spec
+*.exe
+
+# Arquivos temporários do Python
+__pycache__/
+*.pyc
+
+# Ambientes virtuais
+venv/
+.venv/
