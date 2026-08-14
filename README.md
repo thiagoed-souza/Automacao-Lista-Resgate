@@ -1,43 +1,40 @@
-🚀 Flystart Financial Automation
-Ferramenta desktop para automação de extração e tratamento de relatórios financeiros do ERP Flystart.
+# 🚀 Automação de Relatórios - ERP Flystart
 
-Substitui o processo manual de login, aplicação de filtros, download e formatação de planilhas de cobrança em um único clique.
+Aplicação desktop para **extração e tratamento automatizado de relatórios financeiros** do ERP Flystart. 
 
-🎯 O que o projeto resolve?
-Elimina o trabalho manual: Realiza o login no ERP, seleciona a empresa (JP ou Natal), filtra contas em aberto por período e baixa o relatório.
+Substitui o processo manual de navegação, aplicação de filtros, exportação e formatação de planilhas de cobrança em **um único clique**.
 
-Higieniza os dados: Limpa nomes de clientes (remove IDs e códigos soltos) e padroniza marcas de veículos e placas.
+---
 
-Calcula valores e juros: Aplica automaticamente a taxa de 13% sobre os saldos pendentes e calcula os dias exatos de atraso.
+## 🎯 O que a ferramenta faz?
 
-Gera relatório pronto pra cobrança: Exporta uma planilha .xlsx enxuta contendo apenas as colunas úteis e abre o arquivo ao finalizar.
+* **Automação Web:** Acessa o ERP, realiza o login, seleciona a unidade (**JP** ou **NATAL**) e extrai as contas pendentes do período selecionado.
+* **Limpeza de Dados:** Trata o nome dos clientes (remove IDs e prefixos) e padroniza dados de veículos e placas.
+* **Cálculo de Juros e Atraso:** Aplica automaticamente a taxa de 13% sobre o saldo e calcula a quantidade exata de dias em atraso.
+* **Relatório Pronto para Uso:** Gera uma planilha `.xlsx` limpa e formatada na pasta **Downloads**, abrindo o arquivo automaticamente ao finalizar.
 
-💻 Como Usar
-Opção 1: Usando o Executável (.exe) — Recomendado para usuários
-Acesse a pasta dist (ou o local onde o .exe está salvo).
+---
 
-Dê um duplo clique no arquivo Automação Flystart.exe.
+## 💻 Como Usar
 
-Preencha seus dados de acesso, selecione a unidade, insira o período e clique em 🚀 Iniciar Processamento.
+### 📦 Opção 1: Executável (`.exe`) — *Recomendado*
 
-Nota: Não é necessário ter o Python instalado para rodar o executável. Apenas certifique-se de ter o Google Chrome instalado na máquina.
+> Não requer Python instalado. Funciona em qualquer máquina com o Google Chrome.
 
-Opção 2: Rodando via Código (Python) — Para desenvolvedores
-Instale as dependências:
+1. Baixe o arquivo executável na pasta do projeto ou na seção de *Releases*.
+2. Abra o arquivo **`Automação Flystart.exe`**.
+3. Preencha as informações da tela:
+   * **Usuário / CPF** e **Senha** do Flystart
+   * **Unidade** (`ZEH MOTOCA JP` ou `ZEH MOTOCA NATAL`)
+   * **Período** (Ex: `01/08/2026 - 09/08/2026`)
+4. Clique em **🚀 Iniciar Processamento**.
 
-Bash
-pip install customtkinter selenium pandas openpyxl
-Execute o script:
+---
 
-Bash
-python app.py
-(Opcional) Como compilar um novo .exe:
-Caso faça alterações no código e queira gerar um novo executável com PyInstaller:
+### 🛠️ Opção 2: Código Fonte (Python)
 
-Bash
-pip install pyinstaller
-pyinstaller --noconsole --onefile app.py
-📌 Colunas do Relatório Gerado
-O arquivo final é salvo na pasta Downloads e aberto automaticamente no Excel com as seguintes colunas:
+Caso deseje executar ou modificar o código fonte:
 
-ID | Tipo | Cliente/Fornecedor | Descrição | Placa | Saldo (+13%) | Data cadastro | Dias de Atraso | WhatsApp
+1. **Instale as dependências:**
+   ```bash
+   pip install customtkinter selenium pandas openpyxl
