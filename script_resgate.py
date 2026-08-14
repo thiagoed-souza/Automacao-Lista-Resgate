@@ -9,6 +9,7 @@ import pandas as pd
 
 import customtkinter as ctk
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options  # <-- IMPORTAÇÃO CORRIGIDA
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -134,7 +135,8 @@ class App(ctk.CTk):
         thread.start()
 
     def configurar_driver(self):
-        chrome_options = webdriver.ChromeOptions()
+        """Configuração corrigida do Chrome Options."""
+        chrome_options = Options() # <-- INSTÂNCIA CORRETA
         prefs = {
             "download.default_directory": PASTA_DOWNLOADS,
             "download.prompt_for_download": False,
@@ -145,10 +147,6 @@ class App(ctk.CTk):
         chrome_options.add_experimental_option("prefs", prefs)
         
         driver = webdriver.Chrome(options=chrome_options)
-        driver.execute_cdp_cmd("Page.setDownloadBehavior", {
-            "behavior": "allow",
-            "downloadPath": PASTA_DOWNLOADS
-        })
         return driver
 
     def executar_automacao(self, usuario_flystart, senha_flystart, empresa_selecionada, intervalo_datas):
