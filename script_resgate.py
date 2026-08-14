@@ -9,7 +9,9 @@ import pandas as pd
 
 import customtkinter as ctk
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options  # <-- IMPORTAÇÃO CORRIGIDA
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service  # <-- NOVO
+from webdriver_manager.chrome import ChromeDriverManager  # <-- NOVO
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -135,8 +137,8 @@ class App(ctk.CTk):
         thread.start()
 
     def configurar_driver(self):
-        """Configuração corrigida do Chrome Options."""
-        chrome_options = Options() # <-- INSTÂNCIA CORRETA
+        """Configuração do Driver gerenciado automaticamente pelo webdriver-manager."""
+        chrome_options = Options()
         prefs = {
             "download.default_directory": PASTA_DOWNLOADS,
             "download.prompt_for_download": False,
@@ -146,7 +148,9 @@ class App(ctk.CTk):
         }
         chrome_options.add_experimental_option("prefs", prefs)
         
-        driver = webdriver.Chrome(options=chrome_options)
+        # Gerencia o download do ChromeDriver compatível automaticamente
+        servico = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=servico, options=chrome_options)
         return driver
 
     def executar_automacao(self, usuario_flystart, senha_flystart, empresa_selecionada, intervalo_datas):
