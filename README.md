@@ -1,19 +1,43 @@
-# Automação Lista Resgate
+🚀 Flystart Financial Automation
+Ferramenta desktop para automação de extração e tratamento de relatórios financeiros do ERP Flystart.
 
-Script em Python desenvolvido para automatizar a seleção e o resgate de dados/listas por empresa.
+Substitui o processo manual de login, aplicação de filtros, download e formatação de planilhas de cobrança em um único clique.
 
-## 📌 O que o projeto faz?
+🎯 O que o projeto resolve?
+Elimina o trabalho manual: Realiza o login no ERP, seleciona a empresa (JP ou Natal), filtra contas em aberto por período e baixa o relatório.
 
-A ferramenta automatiza o processo de extração/tratamento da lista de resgate, permitindo ao usuário selecionar dynamicamente qual empresa deseja processar durante a execução.
+Higieniza os dados: Limpa nomes de clientes (remove IDs e códigos soltos) e padroniza marcas de veículos e placas.
 
-## 🚀 Tecnologias e Dependências
+Calcula valores e juros: Aplica automaticamente a taxa de 13% sobre os saldos pendentes e calcula os dias exatos de atraso.
 
-- Python 3.x
-- *(Coloque aqui as bibliotecas que usou, ex: pandas, selenium, requests, etc.)*
+Gera relatório pronto pra cobrança: Exporta uma planilha .xlsx enxuta contendo apenas as colunas úteis e abre o arquivo ao finalizar.
 
-## 🛠️ Como rodar o projeto
+💻 Como Usar
+Opção 1: Usando o Executável (.exe) — Recomendado para usuários
+Acesse a pasta dist (ou o local onde o .exe está salvo).
 
-1. **Clone o repositório:**
-   ```bash
-   git clone [https://github.com/Thiagoed-Souza/Automacao-Lista-Resgate.git](https://github.com/Thiagoed-Souza/Automacao-Lista-Resgate.git)
-   cd Automacao-Lista-Resgate
+Dê um duplo clique no arquivo Automação Flystart.exe.
+
+Preencha seus dados de acesso, selecione a unidade, insira o período e clique em 🚀 Iniciar Processamento.
+
+Nota: Não é necessário ter o Python instalado para rodar o executável. Apenas certifique-se de ter o Google Chrome instalado na máquina.
+
+Opção 2: Rodando via Código (Python) — Para desenvolvedores
+Instale as dependências:
+
+Bash
+pip install customtkinter selenium pandas openpyxl
+Execute o script:
+
+Bash
+python app.py
+(Opcional) Como compilar um novo .exe:
+Caso faça alterações no código e queira gerar um novo executável com PyInstaller:
+
+Bash
+pip install pyinstaller
+pyinstaller --noconsole --onefile app.py
+📌 Colunas do Relatório Gerado
+O arquivo final é salvo na pasta Downloads e aberto automaticamente no Excel com as seguintes colunas:
+
+ID | Tipo | Cliente/Fornecedor | Descrição | Placa | Saldo (+13%) | Data cadastro | Dias de Atraso | WhatsApp
